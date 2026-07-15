@@ -27,6 +27,19 @@ services:
           cpus: "1.0"
           memory: 512M
 
+  # Browser UI for gRPC (Swagger-like). Open http://localhost:8080
+  grpcui:
+    build:
+      context: .
+      dockerfile: Dockerfile.grpcui
+    image: protobuf-ai-potato-grpcui:local
+    ports:
+      - "${GRPCUI_PORT:-8080}:8080"
+    depends_on:
+      chat:
+        condition: service_healthy
+    restart: unless-stopped
+
   # Enable later for shared session history across replicas:
   # docker compose --profile scale up
   redis:

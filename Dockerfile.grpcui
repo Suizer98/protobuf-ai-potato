@@ -1,0 +1,11 @@
+# syntax=docker/dockerfile:1
+
+FROM golang:1.22-alpine AS build
+RUN go install github.com/fullstorydev/grpcui/cmd/grpcui@v1.4.1
+
+FROM alpine:3.20
+RUN apk add --no-cache ca-certificates
+COPY --from=build /go/bin/grpcui /usr/local/bin/grpcui
+EXPOSE 8080
+ENTRYPOINT ["grpcui"]
+CMD ["-plaintext", "-open-browser=false", "-port", "8080", "-bind", "0.0.0.0", "chat:50051"]

@@ -11,7 +11,8 @@ internal/llm                   # mock + openai-compatible (openai, groq) provide
 internal/session               # in-memory session history
 internal/server                # Chat RPC handlers
 Dockerfile                     # buf generate + static binary
-docker-compose.yml             # chat service (+ optional redis)
+Dockerfile.grpcui              # browser gRPC UI (grpcui)
+docker-compose.yml             # chat + grpcui (+ optional redis)
 ```
 
 ## Quick start
@@ -23,7 +24,10 @@ cp .env.example .env
 docker compose up --build
 ```
 
-Server listens on `:50051`. Default provider is `mock` (no API key needed).
+- gRPC server: `:50051`
+- Browser UI (grpcui): [http://localhost:8080](http://localhost:8080)
+
+Default provider is `mock` (no API key needed).
 
 ### Groq
 
