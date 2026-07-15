@@ -8,6 +8,9 @@ type Config struct {
 	OpenAIAPIKey  string
 	OpenAIModel   string
 	OpenAIBaseURL string
+	GroqAPIKey    string
+	GroqModel     string
+	GroqBaseURL   string
 }
 
 func Load() Config {
@@ -17,6 +20,9 @@ func Load() Config {
 		OpenAIAPIKey:  os.Getenv("OPENAI_API_KEY"),
 		OpenAIModel:   getenv("OPENAI_MODEL", "gpt-4o-mini"),
 		OpenAIBaseURL: getenv("OPENAI_BASE_URL", "https://api.openai.com/v1"),
+		GroqAPIKey:    os.Getenv("GROQ_API_KEY"),
+		GroqModel:     getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
+		GroqBaseURL:   getenv("GROQ_BASE_URL", "https://api.groq.com/openai/v1"),
 	}
 }
 

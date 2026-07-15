@@ -52,7 +52,7 @@ type openAIStreamChunk struct {
 
 func (p *OpenAIProvider) StreamChat(ctx context.Context, model string, messages []Message) (<-chan Chunk, error) {
 	if p.apiKey == "" {
-		return nil, fmt.Errorf("OPENAI_API_KEY is required for openai provider")
+		return nil, fmt.Errorf("api key is required")
 	}
 	if model == "" {
 		model = p.defaultModel
