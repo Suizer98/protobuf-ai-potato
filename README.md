@@ -2,6 +2,8 @@
 
 Go gRPC AI chat backend with protobuf streaming. Docker-first so you can scale replicas later.
 
+Live demo (grpcui): https://protobuf-ai-potato.onrender.com
+
 ## Layout
 
 ```
@@ -10,9 +12,12 @@ cmd/server                     # gRPC server entrypoint
 internal/llm                   # mock + openai-compatible (openai, groq) providers
 internal/session               # in-memory session history
 internal/server                # Chat RPC handlers
-Dockerfile                     # buf generate + static binary
-Dockerfile.grpcui              # browser gRPC UI (grpcui)
+Dockerfile                     # buf generate + static binary (local chat)
+Dockerfile.grpcui              # browser gRPC UI only
+Dockerfile.render              # Render all-in-one: chat + grpcui
 docker-compose.yml             # chat + grpcui (+ optional redis)
+scripts/render-entrypoint.sh   # starts gRPC then grpcui
+
 ```
 
 ## Quick start
@@ -76,3 +81,23 @@ make docker-down
 make docker-scale
 make generate
 ```
+
+## Deploy on Render (UI in front)
+
+Use `Dockerfile.render` so the public URL is **grpcui** (HTTP). gRPC stays inside the container.
+
+1. Render → Web Service → Docker
+2. Dockerfile path: `Dockerfile.render`
+3. Env vars:
+
+```text
+LLM_PROVIDER=groq
+GROQ_API_KEY=gsk_...
+GROQ_MODEL=llama-3.3-70b-versatile
+```
+
+Leave `PORT` alone (Render sets it). Do **not** point `GRPC_ADDR` at Render's public port — the entrypoint keeps gRPC on `127.0.0.1:50051`.
+
+4. After deploy, open: `https://<your-service>.onrender.com`
+
+Browser → grpcui (HTTP) → localhost gRPC chat inside the same container.
