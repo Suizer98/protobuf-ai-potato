@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package chat.v1;
+
+option go_package = "github.com/Suizer98/protobuf-ai-potato/gen/go/chat/v1;chatv1";
+
+service ChatService {
+  rpc Chat(ChatRequest) returns (stream ChatChunk);
+  rpc ListSessions(ListSessionsRequest) returns (ListSessionsResponse);
+}
+
+message ChatRequest {
+  string session_id = 1;
+  string message = 2;
+  optional string model = 3;
+}
+
+message ChatChunk {
+  string session_id = 1;
+  string delta = 2;
+  bool done = 3;
+  optional string error = 4;
+}
+
+message ListSessionsRequest {}
+
+message ListSessionsResponse {
+  repeated Session sessions = 1;
+}
+
+message Session {
+  string id = 1;
+  string title = 2;
+  int64 updated_at_unix = 3;
+}
