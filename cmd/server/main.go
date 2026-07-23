@@ -1,12 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
@@ -16,6 +18,7 @@ import (
 	chatv1 "github.com/Suizer98/protobuf-ai-potato/gen/go/chat/v1"
 	"github.com/Suizer98/protobuf-ai-potato/internal/config"
 	"github.com/Suizer98/protobuf-ai-potato/internal/llm"
+	"github.com/Suizer98/protobuf-ai-potato/internal/rag"
 	"github.com/Suizer98/protobuf-ai-potato/internal/server"
 	"github.com/Suizer98/protobuf-ai-potato/internal/session"
 )
@@ -28,13 +31,25 @@ func main() {
 		log.Fatalf("provider: %v", err)
 	}
 
+	var ragService *rag.Service
+	if cfg.DatabaseURL != "" {
+		ragService, err = newRAG(cfg)
+		if err != nil {
+			log.Fatalf("rag: %v", err)
+		}
+		defer ragService.Close()
+		log.Printf("rag enabled (embedding=%s top_k=%d)", cfg.EmbeddingProvider, cfg.RAGTopK)
+	} else {
+		log.Printf("rag disabled (set DATABASE_URL to enable)")
+	}
+
 	listener, err := net.Listen("tcp", cfg.GRPCAddr)
 	if err != nil {
 		log.Fatalf("listen: %v", err)
 	}
 
 	grpcServer := grpc.NewServer()
-	chatv1.RegisterChatServiceServer(grpcServer, server.NewChatServer(provider, session.NewStore()))
+	chatv1.RegisterChatServiceServer(grpcServer, server.NewChatServer(provider, session.NewStore(), ragService))
 
 	healthServer := health.NewServer()
 	healthpb.RegisterHealthServer(grpcServer, healthServer)
@@ -68,5 +83,33 @@ func newProvider(cfg config.Config) (llm.Provider, error) {
 		return llm.NewOpenAIProvider(cfg.GroqAPIKey, cfg.GroqBaseURL, cfg.GroqModel), nil
 	default:
 		return nil, fmt.Errorf("unsupported LLM_PROVIDER %q (use mock, openai, or groq)", cfg.LLMProvider)
+	}
+}
+
+func newRAG(cfg config.Config) (*rag.Service, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	store, err := rag.OpenStore(ctx, cfg.DatabaseURL)
+	if err != nil {
+		return nil, err
+	}
+
+	embedder, err := newEmbedder(cfg)
+	if err != nil {
+		store.Close()
+		return nil, err
+	}
+	return rag.NewService(store, embedder, cfg.RAGTopK), nil
+}
+
+func newEmbedder(cfg config.Config) (rag.Embedder, error) {
+	switch cfg.EmbeddingProvider {
+	case "mock":
+		return rag.NewMockEmbedder(), nil
+	case "openai":
+		return rag.NewOpenAIEmbedder(cfg.EmbeddingAPIKey, cfg.EmbeddingBaseURL, cfg.EmbeddingModel), nil
+	default:
+		return nil, fmt.Errorf("unsupported EMBEDDING_PROVIDER %q (use mock or openai)", cfg.EmbeddingProvider)
 	}
 }

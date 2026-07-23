@@ -1,4 +1,21 @@
 services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: potato
+      POSTGRES_PASSWORD: potato
+      POSTGRES_DB: potato
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U potato -d potato"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
   chat:
     build: .
     image: protobuf-ai-potato-chat:local
@@ -13,12 +30,21 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
       OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      DATABASE_URL: ${DATABASE_URL:-postgres://potato:potato@postgres:5432/potato?sslmode=disable}
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-mock}
+      EMBEDDING_API_KEY: ${EMBEDDING_API_KEY:-}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-text-embedding-3-small}
+      EMBEDDING_BASE_URL: ${EMBEDDING_BASE_URL:-https://api.openai.com/v1}
+      RAG_TOP_K: ${RAG_TOP_K:-4}
+    depends_on:
+      postgres:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "/grpc_health_probe", "-addr=:50051"]
       interval: 15s
       timeout: 3s
       retries: 5
-      start_period: 5s
+      start_period: 10s
     restart: unless-stopped
     deploy:
       replicas: 1
@@ -52,4 +78,5 @@ services:
     restart: unless-stopped
 
 volumes:
+  pgdata:
   redis-data:
